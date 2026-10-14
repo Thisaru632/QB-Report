@@ -1,0 +1,25 @@
+body { font-family: system-ui, sans-serif; margin: 0; background: #f5f6fa; color: #222; }
+main { width: 100%; height: 100vh; box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; }
+h1 { margin: 0 0 12px; }
+.upload { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+button { background: #2563eb; color: #fff; border: 0; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+button:disabled { opacity: .6; }
+.wrap { flex: 1; min-height: 0; overflow: auto; background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+table { border-collapse: collapse; min-width: 100%; font-size: 14px; }
+th, td { padding: 8px 12px; border-bottom: 1px solid #eee; text-align: left; white-space: nowrap; }
+th { background: #f0f2f7; position: sticky; top: 0; }
+.tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+.tab { background: #e5e7ef; color: #333; border-radius: 6px 6px 0 0; }
+.tab.active { background: #2563eb; color: #fff; }
+.empty { flex: 1; background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+.filters { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; background: #fff; padding: 10px 14px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.filters label { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 500; color: #444; }
+.filters input[type="date"] { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; font-family: inherit; color: #333; }
+.filter-btn-group { display: flex; gap: 4px; margin-left: 8px; }
+.filter-btn { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; }
+.filter-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.clear-btn { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+.clear-btn:hover { background: #e2e8f0; color: #334155; }
+.download-btn { background: #059669; color: #fff; border: 0; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.download-btn:hover { background: #047857; }
+.download-btn:disabled { opacity: .5; cursor: not-allowed; }
