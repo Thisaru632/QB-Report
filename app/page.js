@@ -43,6 +43,40 @@ export default function Home() {
     "Dispatcher ID": "Dispatch By",
     "Distance": "Final distance",
   };
+  // columns shown when the Cash filter is selected (in this order)
+  const cashColumns = [
+    "Booking Ref", "Driver Code", "end date", "*DueDate", "vehicle_type",
+    "Location", "Memo", "item_description",
+    "ItemQuantity", "ItemRate", "*ItemAmount",
+  ];
+  // display headings for the cash report (keys above stay the same)
+  const cashLabels = {
+    "Booking Ref": "*InvoiceNo",
+    "Driver Code": "*Customer",
+    "end date": "*InvoiceDate",
+    "*DueDate": "*DueDate",
+    "vehicle_type": "Terms",
+    "Location": "Location",
+    "Memo": "Item(Product/Service)",
+    "item_description": "ItemDescription",
+  };
+  const labelOf = (c) => (paymentType === "CASH" ? cashLabels[c] ?? c : c);
+  const cashSources = {
+    ...dateRangeSources,
+    "Memo": () => "Hire Commission",
+    "ItemRate": dateRangeSources["Final Price"],
+    "*DueDate": (r) => {
+      const d = (r.end_date || "").split(/[T ]/)[0];
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
+      if (!m) return "";
+      const dt = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + 7));
+      return dt.toISOString().slice(0, 10);
+    },
+    "vehicle_type": "vehicle_type",
+    "item_description": "item_description",
+  };
+  const activeColumns = paymentType === "CASH" ? cashColumns : dateRangeColumns;
+  const activeSources = paymentType === "CASH" ? cashSources : dateRangeSources;
   const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
   function sourceValue(row, source) {
     if (!source) return "";
@@ -107,9 +141,9 @@ export default function Home() {
       }
       return str;
     };
-    const headerRow = dateRangeColumns.map(escape).join(",");
+    const headerRow = activeColumns.map((c) => escape(labelOf(c))).join(",");
     const dataRows = filteredRows.map((r) =>
-      dateRangeColumns.map((c) => escape(sourceValue(r, dateRangeSources[c]))).join(",")
+      activeColumns.map((c) => escape(sourceValue(r, activeSources[c]))).join(",")
     );
     const csvContent = [headerRow, ...dataRows].join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -209,19 +243,19 @@ export default function Home() {
           <div className="wrap">
             <table>
               <thead>
-                <tr>{dateRangeColumns.map((c) => <th key={c}>{c}</th>)}</tr>
+                <tr>{activeColumns.map((c) => <th key={c}>{labelOf(c)}</th>)}</tr>
               </thead>
               <tbody>
                 {filteredRows.map((r, i) => (
                   <tr key={i}>
-                    {dateRangeColumns.map((c) => (
-                      <td key={c}>{String(sourceValue(r, dateRangeSources[c]) ?? "")}</td>
+                    {activeColumns.map((c) => (
+                      <td key={c}>{String(sourceValue(r, activeSources[c]) ?? "")}</td>
                     ))}
                   </tr>
                 ))}
                 {!filteredRows.length && (
                   <tr>
-                    <td colSpan={dateRangeColumns.length} style={{ textAlign: "center", padding: "24px", color: "#666" }}>
+                    <td colSpan={activeColumns.length} style={{ textAlign: "center", padding: "24px", color: "#666" }}>
                       No records match the selected filter.
                     </td>
                   </tr>
