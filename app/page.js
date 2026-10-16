@@ -36,7 +36,7 @@ export default function Home() {
     "Pick up Street": (r) => (r.item_description || "").split("->")[0]?.trim() || "",
     "Drop off Str": (r) => (r.item_description || "").split("->")[1]?.trim() || "",
     "Hire type": "Settlement Type",
-    "Journey Type": "Hire type",
+    "Journey Type": "Hire Nature",
     "Package price": "amount",
     "Advance Paid": "advance_payment",
     "Form ID": "booking_created_agent_id",
@@ -46,7 +46,7 @@ export default function Home() {
   // columns shown when the Cash filter is selected (in this order)
   const cashColumns = [
     "Booking Ref", "Driver Code", "end date", "*DueDate", "vehicle_type",
-    "Location", "Memo", "item_description",
+    "Location", "MemoNew", "Memo", "item_description",
     "ItemQuantity", "ItemRate", "*ItemAmount",
   ];
   // display headings for the cash report (keys above stay the same)
@@ -57,6 +57,7 @@ export default function Home() {
     "*DueDate": "*DueDate",
     "vehicle_type": "Terms",
     "Location": "Location",
+    "MemoNew": "Memo",
     "Memo": "Item(Product/Service)",
     "item_description": "ItemDescription",
   };
