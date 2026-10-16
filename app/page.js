@@ -10,6 +10,8 @@ export default function Home() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [paymentType, setPaymentType] = useState("ALL");
+  const [uploadSearch, setUploadSearch] = useState("");
+  const [reportSearch, setReportSearch] = useState("");
   const tabs = ["Upload", "Date Range Report"];
   const dateRangeColumns = [
     "Trip Status", "Misc Price Final", "Driver Comm", "SC Comm", "Final Price",
@@ -61,11 +63,21 @@ export default function Home() {
     "Memo": "Item(Product/Service)",
     "item_description": "ItemDescription",
   };
-  const labelOf = (c) => (paymentType === "CASH" ? cashLabels[c] ?? c : c);
+  const isFormattedReport = paymentType === "CASH" || paymentType === "CREDIT" || paymentType === "CREDIT_NOTE";
+  const labelOf = (c) => (isFormattedReport ? cashLabels[c] ?? c : c);
   const cashSources = {
     ...dateRangeSources,
+    "Driver Code": (r) => {
+      const code = sourceValue(r, dateRangeSources["Driver Code"]);
+      if (!code) return "";
+      return String(code).startsWith("Driver:") ? String(code) : `Driver:${code}`;
+    },
     "Memo": () => "Hire Commission",
     "ItemRate": dateRangeSources["Final Price"],
+    "*ItemAmount": (r) => {
+      const rate = parseFloat(String(sourceValue(r, dateRangeSources["Final Price"])).replace(/,/g, ""));
+      return Number.isFinite(rate) ? (rate * 0.1).toFixed(2) : "";
+    },
     "*DueDate": (r) => {
       const d = (r.end_date || "").split(/[T ]/)[0];
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d);
@@ -76,8 +88,22 @@ export default function Home() {
     "vehicle_type": "vehicle_type",
     "item_description": "item_description",
   };
-  const activeColumns = paymentType === "CASH" ? cashColumns : dateRangeColumns;
-  const activeSources = paymentType === "CASH" ? cashSources : dateRangeSources;
+  const creditNoteSources = {
+    ...cashSources,
+    "Booking Ref": (r) => {
+      const ref = sourceValue(r, dateRangeSources["Booking Ref"]);
+      if (!ref) return "";
+      return String(ref).toUpperCase().startsWith("C") ? String(ref) : `C${ref}`;
+    },
+    "Memo": () => "Hire Commission 90%",
+  };
+  const activeColumns = isFormattedReport ? cashColumns : dateRangeColumns;
+  const activeSources =
+    paymentType === "CREDIT_NOTE"
+      ? creditNoteSources
+      : isFormattedReport
+      ? cashSources
+      : dateRangeSources;
   const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
   function sourceValue(row, source) {
     if (!source) return "";
@@ -120,7 +146,7 @@ export default function Home() {
       const settlement = String(r["Settlement Type"] || "").toUpperCase();
       const payment = String(r["Payment Type"] || "").toUpperCase();
       if (!settlement.includes("CASH") && payment !== "CA") return false;
-    } else if (paymentType === "CREDIT") {
+    } else if (paymentType === "CREDIT" || paymentType === "CREDIT_NOTE") {
       const settlement = String(r["Settlement Type"] || "").toUpperCase();
       const payment = String(r["Payment Type"] || "").toUpperCase();
       if (!settlement.includes("CREDIT") && payment !== "CP") return false;
@@ -134,6 +160,21 @@ export default function Home() {
     return true;
   });
 
+  const displayedReportRows = filteredRows.filter((r) => {
+    if (!reportSearch.trim()) return true;
+    const q = reportSearch.toLowerCase();
+    return activeColumns.some((c) => {
+      const val = sourceValue(r, activeSources[c]);
+      return String(val ?? "").toLowerCase().includes(q);
+    });
+  });
+
+  const displayedUploadRows = rows.filter((r) => {
+    if (!uploadSearch.trim()) return true;
+    const q = uploadSearch.toLowerCase();
+    return Object.values(r).some((v) => String(v ?? "").toLowerCase().includes(q));
+  });
+
   function downloadCSV() {
     const escape = (val) => {
       const str = String(val ?? "");
@@ -143,7 +184,7 @@ export default function Home() {
       return str;
     };
     const headerRow = activeColumns.map((c) => escape(labelOf(c))).join(",");
-    const dataRows = filteredRows.map((r) =>
+    const dataRows = displayedReportRows.map((r) =>
       activeColumns.map((c) => escape(sourceValue(r, activeSources[c]))).join(",")
     );
     const csvContent = [headerRow, ...dataRows].join("\r\n");
@@ -228,17 +269,41 @@ export default function Home() {
               >
                 Credit
               </button>
+              <button
+                type="button"
+                className={paymentType === "CREDIT_NOTE" ? "filter-btn active" : "filter-btn"}
+                onClick={() => setPaymentType("CREDIT_NOTE")}
+              >
+                Credit Note
+              </button>
             </div>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search in report..."
+              value={reportSearch}
+              onChange={(e) => setReportSearch(e.target.value)}
+              style={{ minWidth: "170px" }}
+            />
+            {reportSearch && (
+              <button
+                type="button"
+                className="clear-btn"
+                onClick={() => setReportSearch("")}
+              >
+                Clear Search
+              </button>
+            )}
             <button
               type="button"
               className="download-btn"
               onClick={downloadCSV}
-              disabled={!filteredRows.length}
+              disabled={!displayedReportRows.length}
             >
               Download CSV
             </button>
             <span style={{ marginLeft: "auto", fontSize: "13px", color: "#666" }}>
-              {filteredRows.length} {filteredRows.length === 1 ? "record" : "records"}
+              {displayedReportRows.length} {displayedReportRows.length === 1 ? "record" : "records"}
             </span>
           </div>
           <div className="wrap">
@@ -247,17 +312,17 @@ export default function Home() {
                 <tr>{activeColumns.map((c) => <th key={c}>{labelOf(c)}</th>)}</tr>
               </thead>
               <tbody>
-                {filteredRows.map((r, i) => (
+                {displayedReportRows.map((r, i) => (
                   <tr key={i}>
                     {activeColumns.map((c) => (
                       <td key={c}>{String(sourceValue(r, activeSources[c]) ?? "")}</td>
                     ))}
                   </tr>
                 ))}
-                {!filteredRows.length && (
+                {!displayedReportRows.length && (
                   <tr>
                     <td colSpan={activeColumns.length} style={{ textAlign: "center", padding: "24px", color: "#666" }}>
-                      No records match the selected filter.
+                      {filteredRows.length ? "No records match your search." : "No records match the selected filter."}
                     </td>
                   </tr>
                 )}
@@ -272,6 +337,24 @@ export default function Home() {
         <input type="file" name="file" accept=".csv" required />
         <button type="submit" disabled={busy}>Upload CSV</button>
         <span>{status}</span>
+        <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search uploaded records..."
+            value={uploadSearch}
+            onChange={(e) => setUploadSearch(e.target.value)}
+            style={{ minWidth: "200px" }}
+          />
+          {uploadSearch && (
+            <button type="button" className="clear-btn" onClick={() => setUploadSearch("")}>
+              Clear Search
+            </button>
+          )}
+          <span style={{ fontSize: "13px", color: "#666", whiteSpace: "nowrap" }}>
+            {displayedUploadRows.length} {displayedUploadRows.length === 1 ? "record" : "records"}
+          </span>
+        </div>
       </form>
 
       <div className="wrap">
@@ -280,13 +363,17 @@ export default function Home() {
             <tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {displayedUploadRows.map((r, i) => (
               <tr key={i}>
                 {columns.map((c) => <td key={c}>{String(r[c] ?? "")}</td>)}
               </tr>
             ))}
-            {!rows.length && (
-              <tr><td>No data yet. Upload a CSV.</td></tr>
+            {!displayedUploadRows.length && (
+              <tr>
+                <td colSpan={columns.length || 1} style={{ textAlign: "center", padding: "24px", color: "#666" }}>
+                  {rows.length ? "No records match your search." : "No data yet. Upload a CSV."}
+                </td>
+              </tr>
             )}
           </tbody>
         </table>

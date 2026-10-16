@@ -11,7 +11,8 @@ export async function GET() {
       .db("fleet")
       .collection("qb_reports")
       .find({}, { projection: { _id: 0, _uploadedAt: 0, _fileName: 0 } })
-      .limit(5000)
+      .sort({ _uploadedAt: -1, _id: -1 })
+      .limit(50000)
       .toArray();
     return NextResponse.json({ rows });
   } catch (e) {
