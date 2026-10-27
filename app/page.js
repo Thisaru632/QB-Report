@@ -150,6 +150,19 @@ export default function Home() {
       const settlement = String(r["Settlement Type"] || "").toUpperCase();
       const payment = String(r["Payment Type"] || "").toUpperCase();
       if (!settlement.includes("CREDIT") && payment !== "CP") return false;
+    } else if (paymentType === "ADVANCE") {
+      const val =
+        sourceValue(r, dateRangeSources["Advance Paid"]) ||
+        r.advance_payment ||
+        r["Advance Paid"] ||
+        r["advance_payment"] ||
+        r.advance;
+      if (val === undefined || val === null) return false;
+      const s = String(val).trim();
+      if (!s || s === "0" || s === "0.0" || s === "0.00") return false;
+      const num = parseFloat(s.replace(/,/g, ""));
+      if (!isNaN(num) && num <= 0) return false;
+      if (s.toLowerCase() === "false" || s.toLowerCase() === "no") return false;
     }
 
     const rowDate = (r.end_date || r.pickdatetime || "").split(/[T ]/)[0];
@@ -275,6 +288,13 @@ export default function Home() {
                 onClick={() => setPaymentType("CREDIT_NOTE")}
               >
                 Credit Note
+              </button>
+              <button
+                type="button"
+                className={paymentType === "ADVANCE" ? "filter-btn active" : "filter-btn"}
+                onClick={() => setPaymentType("ADVANCE")}
+              >
+                Advance
               </button>
             </div>
             <input
