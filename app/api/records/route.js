@@ -14,7 +14,13 @@ export async function GET() {
       .sort({ _uploadedAt: -1, _id: -1 })
       .limit(50000)
       .toArray();
-    return NextResponse.json({ rows });
+    const isCancelled = (r) =>
+      Object.entries(r).some(
+        ([k, v]) =>
+          k.toLowerCase().replace(/[^a-z]/g, "") === "tripstatus" &&
+          /cancel/i.test(String(v ?? ""))
+      );
+    return NextResponse.json({ rows: rows.filter((r) => !isCancelled(r)) });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

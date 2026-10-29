@@ -86,7 +86,18 @@ export default function Home() {
       return dt.toISOString().slice(0, 10);
     },
     "vehicle_type": "vehicle_type",
-    "item_description": "item_description",
+    "item_description": (r) => {
+      const base = sourceValue(r, "item_description");
+      const nature = String(sourceValue(r, dateRangeSources["Journey Type"]) || "").toLowerCase();
+      const suffix = nature.includes("return") ? "Return" : nature.includes("drop") ? "Drop" : "";
+      return suffix ? `${base}/${suffix}` : base;
+    },
+    "ItemQuantity": (r) => {
+      const raw = String(sourceValue(r, "increment") ?? "").replace(/,/g, "").trim();
+      if (!raw) return "";
+      const n = parseFloat(raw);
+      return Number.isFinite(n) ? (Math.abs(n) / 100).toFixed(2) : raw;
+    },
   };
   const creditNoteSources = {
     ...cashSources,
@@ -141,8 +152,28 @@ export default function Home() {
 
   const columns = [...new Set(rows.flatMap((r) => Object.keys(r)))];
 
+  const isAdvanceRow = (r) => {
+    const val =
+      sourceValue(r, dateRangeSources["Advance Paid"]) ||
+      r.advance_payment ||
+      r["Advance Paid"] ||
+      r["advance_payment"] ||
+      r.advance;
+    if (val === undefined || val === null) return false;
+    const s = String(val).trim();
+    if (!s || s === "0" || s === "0.0" || s === "0.00") return false;
+    const num = parseFloat(s.replace(/,/g, ""));
+    if (!isNaN(num) && num <= 0) return false;
+    if (s.toLowerCase() === "false" || s.toLowerCase() === "no") return false;
+    return true;
+  };
+
   const filteredRows = rows.filter((r) => {
-    if (paymentType === "CASH") {
+    if (paymentType === "ADVANCE") {
+      if (!isAdvanceRow(r)) return false;
+    } else if (isAdvanceRow(r)) {
+      return false;
+    } else if (paymentType === "CASH") {
       const settlement = String(r["Settlement Type"] || "").toUpperCase();
       const payment = String(r["Payment Type"] || "").toUpperCase();
       if (!settlement.includes("CASH") && payment !== "CA") return false;
@@ -150,19 +181,6 @@ export default function Home() {
       const settlement = String(r["Settlement Type"] || "").toUpperCase();
       const payment = String(r["Payment Type"] || "").toUpperCase();
       if (!settlement.includes("CREDIT") && payment !== "CP") return false;
-    } else if (paymentType === "ADVANCE") {
-      const val =
-        sourceValue(r, dateRangeSources["Advance Paid"]) ||
-        r.advance_payment ||
-        r["Advance Paid"] ||
-        r["advance_payment"] ||
-        r.advance;
-      if (val === undefined || val === null) return false;
-      const s = String(val).trim();
-      if (!s || s === "0" || s === "0.0" || s === "0.00") return false;
-      const num = parseFloat(s.replace(/,/g, ""));
-      if (!isNaN(num) && num <= 0) return false;
-      if (s.toLowerCase() === "false" || s.toLowerCase() === "no") return false;
     }
 
     const rowDate = (r.end_date || r.pickdatetime || "").split(/[T ]/)[0];
@@ -347,6 +365,22 @@ export default function Home() {
                   </tr>
                 )}
               </tbody>
+              {paymentType === "ALL" && (
+                <tfoot>
+                  <tr style={{ fontWeight: 800, fontSize: "15px", background: "#fef3c7", color: "#78350f", borderTop: "3px solid #f59e0b" }}>
+                    {activeColumns.map((c, idx) => {
+                      if (["Final Price", "SC Comm", "Driver Comm"].includes(c)) {
+                        const total = displayedReportRows.reduce((sum, r) => {
+                          const n = parseFloat(String(sourceValue(r, activeSources[c]) ?? "").replace(/,/g, ""));
+                          return sum + (Number.isFinite(n) ? n : 0);
+                        }, 0);
+                        return <td key={c}>{total.toFixed(2)}</td>;
+                      }
+                      return <td key={c}>{idx === 0 ? "Total" : ""}</td>;
+                    })}
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </>
