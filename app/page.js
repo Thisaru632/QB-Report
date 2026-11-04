@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Papa from "papaparse";
 
 export default function Home() {
   const [rows, setRows] = useState([]);
@@ -12,7 +13,63 @@ export default function Home() {
   const [paymentType, setPaymentType] = useState("ALL");
   const [uploadSearch, setUploadSearch] = useState("");
   const [reportSearch, setReportSearch] = useState("");
-  const tabs = ["Upload", "Date Range Report"];
+  const [compareLeft, setCompareLeft] = useState({ name: "", rows: [] });
+  const [compareRight, setCompareRight] = useState({ name: "", rows: [] });
+  function onCompareFile(e, setter) {
+    const file = e.target.files[0];
+    if (!file) return;
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: "greedy",
+      transformHeader: (h) => (h ? h.trim() : ""),
+      complete: (res) => setter({ name: file.name, rows: res.data || [] }),
+    });
+  }
+  const [compareResult, setCompareResult] = useState(null);
+  function runCompare() {
+    const normK = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
+    const keyOf = (rows) => {
+      for (const r of rows) {
+        const k = Object.keys(r).find((x) => ["bookingid", "bookingref"].includes(normK(x)));
+        if (k) return k;
+      }
+      return null;
+    };
+    const k1 = keyOf(compareLeft.rows);
+    const k2 = keyOf(compareRight.rows);
+    if (!k1 || !k2) {
+      setCompareResult({ error: "Booking ID column not found in one or both files." });
+      return;
+    }
+    const toMap = (rows, k) => {
+      const m = new Map();
+      rows.forEach((r) => {
+        const id = String(r[k] ?? "").trim();
+        if (id) m.set(id, r);
+      });
+      return m;
+    };
+    const m1 = toMap(compareLeft.rows, k1);
+    const m2 = toMap(compareRight.rows, k2);
+    const onlyLeft = [...m1.keys()].filter((id) => !m2.has(id));
+    const onlyRight = [...m2.keys()].filter((id) => !m1.has(id));
+    const differences = [];
+    let matched = 0;
+    m1.forEach((r1, id) => {
+      const r2 = m2.get(id);
+      if (!r2) return;
+      const fields = Object.keys(r1).filter(
+        (f) => f !== k1 && f in r2 && String(r1[f] ?? "").trim() !== String(r2[f] ?? "").trim()
+      );
+      if (fields.length) {
+        fields.forEach((f) => differences.push({ id, field: f, a: r1[f], b: r2[f] }));
+      } else {
+        matched++;
+      }
+    });
+    setCompareResult({ onlyLeft, onlyRight, differences, matched });
+  }
+  const tabs = ["Upload", "Date Range Report", "Compare Reports"];
   const dateRangeColumns = [
     "Trip Status", "Misc Price Final", "Driver Comm", "SC Comm", "Final Price",
     "disp", "Vehicle Number", "Driver Name", "Driver Code", "Driver Mobile Number",
@@ -76,7 +133,9 @@ export default function Home() {
     "ItemRate": dateRangeSources["Final Price"],
     "*ItemAmount": (r) => {
       const rate = parseFloat(String(sourceValue(r, dateRangeSources["Final Price"])).replace(/,/g, ""));
-      return Number.isFinite(rate) ? (rate * 0.1).toFixed(2) : "";
+      if (!Number.isFinite(rate)) return "";
+      const qty = cashSources["ItemQuantity"](r);
+      return (rate * (qty === "-0.03" ? 0.7 : 0.1)).toFixed(2);
     },
     "*DueDate": (r) => {
       const d = (r.end_date || "").split(/[T ]/)[0];
@@ -96,7 +155,7 @@ export default function Home() {
       const raw = String(sourceValue(r, "increment") ?? "").replace(/,/g, "").trim();
       if (!raw) return "";
       const n = parseFloat(raw);
-      return Number.isFinite(n) ? (Math.abs(n) / 100).toFixed(2) : raw;
+      return Number.isFinite(n) ? (n / 100).toFixed(2) : raw;
     },
   };
   const creditNoteSources = {
@@ -385,7 +444,88 @@ export default function Home() {
           </div>
         </>
       )}
-      {tab !== "Upload" && tab !== "Date Range Report" && <div className="empty">{tab}</div>}
+      {tab === "Compare Reports" && (
+        <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+          {[
+            { label: "Report 1", data: compareLeft, setter: setCompareLeft },
+            { label: "Report 2", data: compareRight, setter: setCompareRight },
+          ].map(({ label, data, setter }) => {
+            const cols = [...new Set(data.rows.flatMap((r) => Object.keys(r)))];
+            return (
+              <div key={label} style={{ flex: 1, minWidth: 0, border: "1px solid #ddd", borderRadius: "8px", padding: "12px" }}>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "10px" }}>
+                  <strong>{label}</strong>
+                  <input type="file" accept=".csv" onChange={(e) => onCompareFile(e, setter)} />
+                  <span style={{ marginLeft: "auto", fontSize: "13px", color: "#666" }}>
+                    {data.rows.length} {data.rows.length === 1 ? "record" : "records"}
+                  </span>
+                </div>
+                <div className="wrap">
+                  <table>
+                    <thead>
+                      <tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr>
+                    </thead>
+                    <tbody>
+                      {data.rows.map((r, i) => (
+                        <tr key={i}>{cols.map((c) => <td key={c}>{String(r[c] ?? "")}</td>)}</tr>
+                      ))}
+                      {!data.rows.length && (
+                        <tr>
+                          <td colSpan={cols.length || 1} style={{ textAlign: "center", padding: "24px", color: "#666" }}>
+                            No file selected.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {tab === "Compare Reports" && (
+        <div style={{ margin: "12px 0" }}>
+          <button
+            type="button"
+            className="download-btn"
+            onClick={runCompare}
+            disabled={!compareLeft.rows.length || !compareRight.rows.length}
+          >
+            Compare Reports
+          </button>
+          {compareResult?.error && <span style={{ marginLeft: "12px", color: "#b91c1c" }}>{compareResult.error}</span>}
+          {compareResult && !compareResult.error && (
+            <div style={{ marginTop: "12px" }}>
+              <p>
+                <strong>Matching:</strong> {compareResult.matched} &nbsp;|&nbsp;
+                <strong>Only in Report 1:</strong> {compareResult.onlyLeft.length} &nbsp;|&nbsp;
+                <strong>Only in Report 2:</strong> {compareResult.onlyRight.length} &nbsp;|&nbsp;
+                <strong>Differing values:</strong> {compareResult.differences.length}
+              </p>
+              <div className="wrap">
+                <table>
+                  <thead>
+                    <tr><th>Booking ID</th><th>Field</th><th>Report 1</th><th>Report 2</th></tr>
+                  </thead>
+                  <tbody>
+                    {compareResult.onlyLeft.map((id) => (
+                      <tr key={"l" + id}><td>{id}</td><td colSpan={3}>Only in Report 1</td></tr>
+                    ))}
+                    {compareResult.onlyRight.map((id) => (
+                      <tr key={"r" + id}><td>{id}</td><td colSpan={3}>Only in Report 2</td></tr>
+                    ))}
+                    {compareResult.differences.map((d, i) => (
+                      <tr key={"d" + i}><td>{d.id}</td><td>{d.field}</td><td>{String(d.a ?? "")}</td><td>{String(d.b ?? "")}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {tab !== "Upload" && tab !== "Date Range Report" && tab !== "Compare Reports" && <div className="empty">{tab}</div>}
       {tab === "Upload" && (<>
       <form onSubmit={onUpload} className="upload">
         <input type="file" name="file" accept=".csv" required />
