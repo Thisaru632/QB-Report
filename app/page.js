@@ -121,7 +121,10 @@ export default function Home() {
     "item_description": "ItemDescription",
   };
   const isFormattedReport = paymentType === "CASH" || paymentType === "CREDIT" || paymentType === "CREDIT_NOTE";
-  const labelOf = (c) => (isFormattedReport ? cashLabels[c] ?? c : c);
+  const labelOf = (c) => {
+    if (paymentType === "CREDIT" && c === "ItemRate") return "*ItemAmount";
+    return isFormattedReport ? cashLabels[c] ?? c : c;
+  };
   const cashSources = {
     ...dateRangeSources,
     "Driver Code": (r) => {
@@ -164,7 +167,8 @@ export default function Home() {
     "Driver Code": "company_name",
   };
   const creditNoteSources = {
-    ...creditSources,
+    ...cashSources,
+    "Driver Code": "DriverID",
     "Booking Ref": (r) => {
       const ref = sourceValue(r, dateRangeSources["Booking Ref"]);
       if (!ref) return "";
@@ -172,7 +176,13 @@ export default function Home() {
     },
     "Memo": () => "Hire Commission 90%",
   };
-  const activeColumns = isFormattedReport ? cashColumns : dateRangeColumns;
+  const creditColumns = cashColumns.filter((c) => c !== "*ItemAmount");
+  const activeColumns =
+    paymentType === "CREDIT"
+      ? creditColumns
+      : isFormattedReport
+      ? cashColumns
+      : dateRangeColumns;
   const activeSources =
     paymentType === "CREDIT_NOTE"
       ? creditNoteSources
