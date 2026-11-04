@@ -129,9 +129,10 @@ export default function Home() {
   const cashSources = {
     ...dateRangeSources,
     "Driver Code": (r) => {
-      const code = sourceValue(r, dateRangeSources["Driver Code"]);
+      const code = String(sourceValue(r, dateRangeSources["Driver Code"]) ?? "").trim();
       if (!code) return "";
-      return String(code).startsWith("Driver:") ? String(code) : `Driver:${code}`;
+      const clean = code.replace(/^(Registered Drivers:|Driver:)/i, "").trim();
+      return `Registered Drivers:${clean}`;
     },
     "Memo": () => "Hire Commission",
     "ItemRate": dateRangeSources["Final Price"],
@@ -165,7 +166,15 @@ export default function Home() {
   };
   const creditSources = {
     ...cashSources,
-    "Driver Code": "company_name",
+    "Driver Code": (r) => {
+      const company = String(sourceValue(r, "company_name") ?? "").trim();
+      const phone = String(sourceValue(r, "customer whatsapp mobile") ?? "")
+        .trim()
+        .replace(/^\+?94/, "");
+      const combined = [company, phone].filter(Boolean).join(" ");
+      if (!combined) return "";
+      return combined.startsWith("Customer:") ? combined : `Customer:${combined}`;
+    },
     "Memo": () => "Hire Income",
     "ItemRate": "fare_sub_total",
   };
