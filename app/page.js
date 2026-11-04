@@ -123,7 +123,6 @@ export default function Home() {
   const isFormattedReport = paymentType === "CASH" || paymentType === "CREDIT" || paymentType === "CREDIT_NOTE";
   const labelOf = (c) => {
     if (paymentType === "CREDIT" && c === "ItemRate") return "*ItemAmount";
-    if (paymentType === "CREDIT" && c === "Memo") return "HireIncome";
     if (paymentType === "CREDIT_NOTE" && c === "end date") return "*CreditMemoDate";
     return isFormattedReport ? cashLabels[c] ?? c : c;
   };
@@ -167,6 +166,7 @@ export default function Home() {
   const creditSources = {
     ...cashSources,
     "Driver Code": "company_name",
+    "Memo": () => "Hire Income",
   };
   const creditNoteSources = {
     ...cashSources,
