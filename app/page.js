@@ -179,11 +179,8 @@ export default function Home() {
     },
     "Memo": () => "Hire Commission 90%",
     "*ItemAmount": (r) => {
-      const total = parseFloat(String(sourceValue(r, "total amount") ?? "").replace(/,/g, ""));
-      if (!Number.isFinite(total)) return "";
-      const misc = parseFloat(String(sourceValue(r, "driver misc sum") ?? "").replace(/,/g, ""));
-      const miscVal = Number.isFinite(misc) ? misc : 0;
-      return ((total - miscVal) * 0.9).toFixed(2);
+      const subTotal = parseFloat(String(sourceValue(r, "fare_sub_total") ?? "").replace(/,/g, ""));
+      return Number.isFinite(subTotal) ? (subTotal * 0.9).toFixed(2) : "";
     },
   };
   const creditColumns = cashColumns.filter((c) => c !== "*ItemAmount");
