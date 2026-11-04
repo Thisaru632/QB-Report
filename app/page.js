@@ -167,6 +167,7 @@ export default function Home() {
     ...cashSources,
     "Driver Code": "company_name",
     "Memo": () => "Hire Income",
+    "ItemRate": "fare_sub_total",
   };
   const creditNoteSources = {
     ...cashSources,
