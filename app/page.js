@@ -123,6 +123,8 @@ export default function Home() {
   const isFormattedReport = paymentType === "CASH" || paymentType === "CREDIT" || paymentType === "CREDIT_NOTE";
   const labelOf = (c) => {
     if (paymentType === "CREDIT" && c === "ItemRate") return "*ItemAmount";
+    if (paymentType === "CREDIT" && c === "Memo") return "HireIncome";
+    if (paymentType === "CREDIT_NOTE" && c === "end date") return "*CreditMemoDate";
     return isFormattedReport ? cashLabels[c] ?? c : c;
   };
   const cashSources = {
@@ -175,11 +177,23 @@ export default function Home() {
       return String(ref).toUpperCase().startsWith("C") ? String(ref) : `C${ref}`;
     },
     "Memo": () => "Hire Commission 90%",
+    "*ItemAmount": (r) => {
+      const total = parseFloat(String(sourceValue(r, "total amount") ?? "").replace(/,/g, ""));
+      if (!Number.isFinite(total)) return "";
+      const misc = parseFloat(String(sourceValue(r, "driver misc sum") ?? "").replace(/,/g, ""));
+      const miscVal = Number.isFinite(misc) ? misc : 0;
+      return ((total - miscVal) * 0.9).toFixed(2);
+    },
   };
   const creditColumns = cashColumns.filter((c) => c !== "*ItemAmount");
+  const creditNoteColumns = cashColumns.filter(
+    (c) => !["*DueDate", "vehicle_type", "ItemRate"].includes(c)
+  );
   const activeColumns =
     paymentType === "CREDIT"
       ? creditColumns
+      : paymentType === "CREDIT_NOTE"
+      ? creditNoteColumns
       : isFormattedReport
       ? cashColumns
       : dateRangeColumns;
