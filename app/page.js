@@ -159,8 +159,12 @@ export default function Home() {
       return Number.isFinite(n) ? (n / 100).toFixed(2) : raw;
     },
   };
-  const creditNoteSources = {
+  const creditSources = {
     ...cashSources,
+    "Driver Code": "company_name",
+  };
+  const creditNoteSources = {
+    ...creditSources,
     "Booking Ref": (r) => {
       const ref = sourceValue(r, dateRangeSources["Booking Ref"]);
       if (!ref) return "";
@@ -172,6 +176,8 @@ export default function Home() {
   const activeSources =
     paymentType === "CREDIT_NOTE"
       ? creditNoteSources
+      : paymentType === "CREDIT"
+      ? creditSources
       : isFormattedReport
       ? cashSources
       : dateRangeSources;
