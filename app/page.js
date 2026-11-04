@@ -180,7 +180,6 @@ export default function Home() {
   };
   const creditNoteSources = {
     ...cashSources,
-    "Driver Code": "DriverID",
     "Booking Ref": (r) => {
       const ref = sourceValue(r, dateRangeSources["Booking Ref"]);
       if (!ref) return "";
