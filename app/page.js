@@ -135,7 +135,7 @@ export default function Home() {
       const rate = parseFloat(String(sourceValue(r, dateRangeSources["Final Price"])).replace(/,/g, ""));
       if (!Number.isFinite(rate)) return "";
       const qty = cashSources["ItemQuantity"](r);
-      return (rate * (qty === "-0.03" ? 0.7 : 0.1)).toFixed(2);
+      return (rate * (qty === "-0.03" ? 0.07 : 0.1)).toFixed(2);
     },
     "*DueDate": (r) => {
       const d = (r.end_date || "").split(/[T ]/)[0];
