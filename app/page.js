@@ -185,7 +185,7 @@ export default function Home() {
       if (!ref) return "";
       return String(ref).toUpperCase().startsWith("C") ? String(ref) : `C${ref}`;
     },
-    "Memo": () => "Hire Commission 90%",
+    "Memo": () => "Hired Vehicle 90%",
     "*ItemAmount": (r) => {
       const subTotal = parseFloat(String(sourceValue(r, "fare_sub_total") ?? "").replace(/,/g, ""));
       return Number.isFinite(subTotal) ? (subTotal * 0.9).toFixed(2) : "";
