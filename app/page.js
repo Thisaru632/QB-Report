@@ -135,7 +135,7 @@ export default function Home() {
       return `Registered Drivers:${clean}`;
     },
     "Memo": () => "Hire Commission",
-    "ItemRate": dateRangeSources["Final Price"],
+    "ItemRate": "fare_sub_total",
     "*ItemAmount": (r) => {
       const rate = parseFloat(String(sourceValue(r, dateRangeSources["Final Price"])).replace(/,/g, ""));
       if (!Number.isFinite(rate)) return "";
