@@ -177,6 +177,7 @@ export default function Home() {
     },
     "Memo": () => "Hire Income",
     "ItemRate": "fare_sub_total",
+    "Location": "customer whatsapp mobile",
   };
   const creditNoteSources = {
     ...cashSources,
