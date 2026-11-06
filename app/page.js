@@ -122,7 +122,6 @@ export default function Home() {
   };
   const isFormattedReport = paymentType === "CASH" || paymentType === "CREDIT" || paymentType === "CREDIT_NOTE";
   const labelOf = (c) => {
-    if (paymentType === "CREDIT" && c === "ItemRate") return "*ItemAmount";
     if (paymentType === "CREDIT_NOTE" && c === "end date") return "*CreditMemoDate";
     return isFormattedReport ? cashLabels[c] ?? c : c;
   };
@@ -176,8 +175,12 @@ export default function Home() {
       return combined.startsWith("Customer:") ? combined : `Customer:${combined}`;
     },
     "Memo": () => "Hire Income",
-    "ItemRate": "fare_sub_total",
-    "Location": "customer whatsapp mobile",
+    "ItemRate": () => "",
+    "*ItemAmount": "fare_sub_total",
+    "Location": (r) =>
+      String(sourceValue(r, "customer whatsapp mobile") ?? "")
+        .trim()
+        .replace(/^\+?94/, ""),
   };
   const creditNoteSources = {
     ...cashSources,
@@ -192,14 +195,11 @@ export default function Home() {
       return Number.isFinite(subTotal) ? (subTotal * 0.9).toFixed(2) : "";
     },
   };
-  const creditColumns = cashColumns.filter((c) => c !== "*ItemAmount");
   const creditNoteColumns = cashColumns.filter(
     (c) => !["*DueDate", "vehicle_type", "ItemRate"].includes(c)
   );
   const activeColumns =
-    paymentType === "CREDIT"
-      ? creditColumns
-      : paymentType === "CREDIT_NOTE"
+    paymentType === "CREDIT_NOTE"
       ? creditNoteColumns
       : isFormattedReport
       ? cashColumns
