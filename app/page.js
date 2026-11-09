@@ -15,14 +15,19 @@ export default function Home() {
   const [reportSearch, setReportSearch] = useState("");
   const [compareLeft, setCompareLeft] = useState({ name: "", rows: [] });
   const [compareRight, setCompareRight] = useState({ name: "", rows: [] });
-  function onCompareFile(e, setter) {
+  const [compareLeftPage, setCompareLeftPage] = useState(1);
+  const [compareRightPage, setCompareRightPage] = useState(1);
+  function onCompareFile(e, setter, pageSetter) {
     const file = e.target.files[0];
     if (!file) return;
     Papa.parse(file, {
       header: true,
       skipEmptyLines: "greedy",
       transformHeader: (h) => (h ? h.trim() : ""),
-      complete: (res) => setter({ name: file.name, rows: res.data || [] }),
+      complete: (res) => {
+        setter({ name: file.name, rows: res.data || [] });
+        if (pageSetter) pageSetter(1);
+      },
     });
   }
   const [compareResult, setCompareResult] = useState(null);
@@ -30,7 +35,9 @@ export default function Home() {
     const normK = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
     const keyOf = (rows) => {
       for (const r of rows) {
-        const k = Object.keys(r).find((x) => ["bookingid", "bookingref"].includes(normK(x)));
+        const k = Object.keys(r).find((x) =>
+          ["bookingid", "bookingref", "invoiceno"].includes(normK(x))
+        );
         if (k) return k;
       }
       return null;
@@ -136,7 +143,7 @@ export default function Home() {
     "Memo": () => "Hire Commission",
     "ItemRate": "fare_sub_total",
     "*ItemAmount": (r) => {
-      const rate = parseFloat(String(sourceValue(r, dateRangeSources["Final Price"])).replace(/,/g, ""));
+      const rate = parseFloat(String(sourceValue(r, cashSources["ItemRate"])).replace(/,/g, ""));
       if (!Number.isFinite(rate)) return "";
       const qty = parseFloat(cashSources["ItemQuantity"](r));
       const pct = Number.isFinite(qty) ? 0.1 + qty : 0.1;
@@ -485,26 +492,30 @@ export default function Home() {
       {tab === "Compare Reports" && (
         <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
           {[
-            { label: "Report 1", data: compareLeft, setter: setCompareLeft },
-            { label: "Report 2", data: compareRight, setter: setCompareRight },
-          ].map(({ label, data, setter }) => {
+            { label: "Report 1", data: compareLeft, setter: setCompareLeft, page: compareLeftPage, setPage: setCompareLeftPage },
+            { label: "Report 2", data: compareRight, setter: setCompareRight, page: compareRightPage, setPage: setCompareRightPage },
+          ].map(({ label, data, setter, page, setPage }) => {
             const cols = [...new Set(data.rows.flatMap((r) => Object.keys(r)))];
+            const pageSize = 10;
+            const totalPages = Math.ceil(data.rows.length / pageSize) || 1;
+            const currentPage = Math.min(Math.max(1, page), totalPages);
+            const pagedRows = data.rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
             return (
-              <div key={label} style={{ flex: 1, minWidth: 0, border: "1px solid #ddd", borderRadius: "8px", padding: "12px" }}>
+              <div key={label} style={{ flex: 1, minWidth: 0, border: "1px solid #ddd", borderRadius: "8px", padding: "12px", display: "flex", flexDirection: "column" }}>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "10px" }}>
                   <strong>{label}</strong>
-                  <input type="file" accept=".csv" onChange={(e) => onCompareFile(e, setter)} />
+                  <input type="file" accept=".csv" onChange={(e) => onCompareFile(e, setter, setPage)} />
                   <span style={{ marginLeft: "auto", fontSize: "13px", color: "#666" }}>
                     {data.rows.length} {data.rows.length === 1 ? "record" : "records"}
                   </span>
                 </div>
-                <div className="wrap">
+                <div className="wrap" style={{ maxHeight: "380px" }}>
                   <table>
                     <thead>
                       <tr>{cols.map((c) => <th key={c}>{c}</th>)}</tr>
                     </thead>
                     <tbody>
-                      {data.rows.map((r, i) => (
+                      {pagedRows.map((r, i) => (
                         <tr key={i}>{cols.map((c) => <td key={c}>{String(r[c] ?? "")}</td>)}</tr>
                       ))}
                       {!data.rows.length && (
@@ -517,6 +528,36 @@ export default function Home() {
                     </tbody>
                   </table>
                 </div>
+                {data.rows.length > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", fontSize: "13px", color: "#555" }}>
+                    <span>
+                      Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, data.rows.length)} of {data.rows.length}
+                    </span>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        className="clear-btn"
+                        style={{ padding: "4px 10px" }}
+                        disabled={currentPage <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      >
+                        Prev
+                      </button>
+                      <span style={{ alignSelf: "center", padding: "0 4px" }}>
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        className="clear-btn"
+                        style={{ padding: "4px 10px" }}
+                        disabled={currentPage >= totalPages}
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
