@@ -184,6 +184,7 @@ export default function Home() {
     "Memo": () => "Hire Income",
     "ItemRate": () => "",
     "*ItemAmount": "fare_sub_total",
+    "vehicle_type": () => "",
     "Location": (r) =>
       String(sourceValue(r, "customer whatsapp mobile") ?? "")
         .trim()
@@ -197,13 +198,14 @@ export default function Home() {
       return String(ref).toUpperCase().startsWith("C") ? String(ref) : `C${ref}`;
     },
     "Memo": () => "Hired Vehicle 90%",
+    "ItemRate": () => "",
     "*ItemAmount": (r) => {
       const subTotal = parseFloat(String(sourceValue(r, "fare_sub_total") ?? "").replace(/,/g, ""));
       return Number.isFinite(subTotal) ? (subTotal * 0.9).toFixed(2) : "";
     },
   };
   const creditNoteColumns = cashColumns.filter(
-    (c) => !["*DueDate", "vehicle_type", "ItemRate"].includes(c)
+    (c) => !["*DueDate", "vehicle_type"].includes(c)
   );
   const activeColumns =
     paymentType === "CREDIT_NOTE"
