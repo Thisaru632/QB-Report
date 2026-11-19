@@ -212,16 +212,16 @@ export default function Home() {
     paymentType === "CREDIT_NOTE"
       ? creditNoteColumns
       : isFormattedReport
-      ? cashColumns
-      : dateRangeColumns;
+        ? cashColumns
+        : dateRangeColumns;
   const activeSources =
     paymentType === "CREDIT_NOTE"
       ? creditNoteSources
       : paymentType === "CREDIT"
-      ? creditSources
-      : isFormattedReport
-      ? cashSources
-      : dateRangeSources;
+        ? creditSources
+        : isFormattedReport
+          ? cashSources
+          : dateRangeSources;
   const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]/g, "");
   function sourceValue(row, source) {
     if (!source) return "";
@@ -282,12 +282,10 @@ export default function Home() {
       return false;
     } else if (paymentType === "CASH") {
       const settlement = String(r["Settlement Type"] || "").toUpperCase();
-      const payment = String(r["Payment Type"] || "").toUpperCase();
-      if (!settlement.includes("CASH") && payment !== "CA") return false;
+      if (!settlement.includes("CASH")) return false;
     } else if (paymentType === "CREDIT" || paymentType === "CREDIT_NOTE") {
       const settlement = String(r["Settlement Type"] || "").toUpperCase();
-      const payment = String(r["Payment Type"] || "").toUpperCase();
-      if (!settlement.includes("CREDIT") && payment !== "CP") return false;
+      if (!settlement.includes("CREDIT")) return false;
     }
 
     const rowDate = (r.complete_date || r.end_date || r.pickdatetime || "").split(/[T ]/)[0];
@@ -609,51 +607,51 @@ export default function Home() {
       )}
       {tab !== "Upload" && tab !== "Date Range Report" && tab !== "Compare Reports" && <div className="empty">{tab}</div>}
       {tab === "Upload" && (<>
-      <form onSubmit={onUpload} className="upload">
-        <input type="file" name="file" accept=".csv" required />
-        <button type="submit" disabled={busy}>Upload CSV</button>
-        <span>{status}</span>
-        <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search uploaded records..."
-            value={uploadSearch}
-            onChange={(e) => setUploadSearch(e.target.value)}
-            style={{ minWidth: "200px" }}
-          />
-          {uploadSearch && (
-            <button type="button" className="clear-btn" onClick={() => setUploadSearch("")}>
-              Clear Search
-            </button>
-          )}
-          <span style={{ fontSize: "13px", color: "#666", whiteSpace: "nowrap" }}>
-            {displayedUploadRows.length} {displayedUploadRows.length === 1 ? "record" : "records"}
-          </span>
-        </div>
-      </form>
-
-      <div className="wrap">
-        <table>
-          <thead>
-            <tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr>
-          </thead>
-          <tbody>
-            {displayedUploadRows.map((r, i) => (
-              <tr key={i}>
-                {columns.map((c) => <td key={c}>{String(r[c] ?? "")}</td>)}
-              </tr>
-            ))}
-            {!displayedUploadRows.length && (
-              <tr>
-                <td colSpan={columns.length || 1} style={{ textAlign: "center", padding: "24px", color: "#666" }}>
-                  {rows.length ? "No records match your search." : "No data yet. Upload a CSV."}
-                </td>
-              </tr>
+        <form onSubmit={onUpload} className="upload">
+          <input type="file" name="file" accept=".csv" required />
+          <button type="submit" disabled={busy}>Upload CSV</button>
+          <span>{status}</span>
+          <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search uploaded records..."
+              value={uploadSearch}
+              onChange={(e) => setUploadSearch(e.target.value)}
+              style={{ minWidth: "200px" }}
+            />
+            {uploadSearch && (
+              <button type="button" className="clear-btn" onClick={() => setUploadSearch("")}>
+                Clear Search
+              </button>
             )}
-          </tbody>
-        </table>
-      </div>
+            <span style={{ fontSize: "13px", color: "#666", whiteSpace: "nowrap" }}>
+              {displayedUploadRows.length} {displayedUploadRows.length === 1 ? "record" : "records"}
+            </span>
+          </div>
+        </form>
+
+        <div className="wrap">
+          <table>
+            <thead>
+              <tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr>
+            </thead>
+            <tbody>
+              {displayedUploadRows.map((r, i) => (
+                <tr key={i}>
+                  {columns.map((c) => <td key={c}>{String(r[c] ?? "")}</td>)}
+                </tr>
+              ))}
+              {!displayedUploadRows.length && (
+                <tr>
+                  <td colSpan={columns.length || 1} style={{ textAlign: "center", padding: "24px", color: "#666" }}>
+                    {rows.length ? "No records match your search." : "No data yet. Upload a CSV."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </>)}
     </main>
   );
