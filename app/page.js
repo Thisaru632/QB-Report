@@ -134,6 +134,7 @@ export default function Home() {
   };
   const cashSources = {
     ...dateRangeSources,
+    "end date": (r) => (r.complete_date || "").split(/[T ]/)[0] || "",
     "Driver Code": (r) => {
       const code = String(sourceValue(r, dateRangeSources["Driver Code"]) ?? "").trim();
       if (!code) return "";
@@ -289,7 +290,7 @@ export default function Home() {
       if (!settlement.includes("CREDIT") && payment !== "CP") return false;
     }
 
-    const rowDate = (r.end_date || r.pickdatetime || "").split(/[T ]/)[0];
+    const rowDate = (r.complete_date || r.end_date || r.pickdatetime || "").split(/[T ]/)[0];
     if (startDate && rowDate && rowDate < startDate) return false;
     if (endDate && rowDate && rowDate > endDate) return false;
     if ((startDate || endDate) && !rowDate) return false;
